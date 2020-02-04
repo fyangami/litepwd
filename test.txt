@@ -1,0 +1,35 @@
+// 若没有注册账户则使用默认账户: litepwd  须用户初始化密码
+litepwd 从剪切板读取url 取出密码
+litepwd github.com in clipboard   ? is_default user?
+litepwd github.com -d  [查询\创建] 默认账户的密码并显示在终端中
+ 1234
+litepwd -l --list 列出所有账户
+litepwd -r --register 注册一个账户
+litepwd --random 获取一个随机字符串 不会存储在数据库中！
+litepwd -a --account fyang github.com  查询对应账户的密码
+litepwd -s --set-default fyang  设置该账户为默认账户  入参可以为空
+litepwd -u --update github.com 更改默认账户存储的密码
+litepwd -b --backup password.txt\.xls\.json\.cvs 备份密码字典，默认为文本格式
+litepwd --lenght 16 设置密码长度
+lttepwd --set-password 设置默认账户的密码
+litepwd -c --command进入默认用户的shell
+litepwd -ca fyang 进入指定用户的shell
+litepwd@litepwd:> github.com   [设置\获取]该账户存储的密码
+litepwd@litepwd:> update [更新]账户密码
+password:
+repactpassword:
+litepwd@litepwd:> set 16 github.com 更新对应域名存储的密码 可指定长度
+litepwd@litepwd:> get 获取一个随机字符串默认长度为16
+litepwd@litepwd:> get 13 获取一个长度为13的随机字符串
+litepwd@litepwd:> backup [path:]password.txt\.xls\.json\.cvs 备份密码 默认为文本格式
+litepwd@litepwd:> default fyang 设置默认账户
+litepwd@litepwd:> system echo 执行系统shell命令
+litepwd@litepwd:> register fyang 注册一个账户
+litepwd@litepwd:> delete fyang 删除账户[危险操作]
+litepwd@litepwd:> list 列出所有账户
+litepwd@litepwd:> all 打印该账户存储的所有密码
+litepwd@litepwd:> quit 退出
+litepwd@litepwd:> exit 退出
+
+users table
+

@@ -1,0 +1,4 @@
+division by zero
+2020-02-02 15:58:49 [MainThread] [root] [ERROR] log.py[line:23] division by zero
+2020-02-03 13:03:08 [MainThread] [root] [ERROR] log.py[line:14] 'SqlcipherExecutor' object has no attribute 'password'
+2020-02-03 13:43:57 [MainThread] [root] [ERROR] log.py[line:14] 'str' object has no attribute 'trim'
