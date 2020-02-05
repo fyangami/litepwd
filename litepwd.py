@@ -21,7 +21,7 @@ __config = {
     "data": None,
     "out": 1,
     "init": False,
-    "alias": None
+    "group": None
 }
 
 __mode = {
@@ -107,8 +107,8 @@ def init(options):
         __mode['set_account_password'] = True
     if options.is_shell:
         __mode["shell"] = True
-    if options.alias:
-        __config['alias'] = options.alias
+    if options.group:
+        __config['group'] = options.group
 
 
 def option_handle():
@@ -185,9 +185,9 @@ def option_handle():
         help="get into the shell."
     )
     opt_parser.add_option(
-        "--alias",
-        dest="alias",
-        help="set alias to target."
+        "--group",
+        dest="group",
+        help="add to group using same password."
     )
     (options, args) = opt_parser.parse_args()
     if len(args) > 1:
@@ -244,34 +244,41 @@ def set_account_password():
 def store(sqlcipher):
     if not __config['target']:
         error_exit("Nothing input.")
-    if not __config['alias']:
-        if not __config['input']:
-            # 剪切板只支持读取url
-            url = __get_url(__config['target'])
-            __config['target'] = url
-            ss = url.split('.')
-            ss.insert(0, 'litepwd')
-            if len(ss) < 3:
-                error_exit("Bad uri or url!")
-            alias = ss[-2]
-            if alias in ['com', 'net', 'org', 'gov', 'wiki']:
-                alias = ss[-3]
-            __config['alias'] = alias
-            # 获取随机字符串
-        else:  # __config['input'] == True
-            # 尝试处理用户输入的内容
-            ss = __config['target'].split(".")
-            ss.insert(0, 'litepwd')
-            if len(ss) >= 3:
-                alias = ss[-2]
-                if alias in ['com', 'net', 'org', 'gov', 'wiki']:
-                    alias = ss[-3]
-                __config['alias'] = alias
+    # if not __config['group']:
+    #     if not __config['input']:
+    #         # 剪切板只支持读取url
+    #         url = __get_url(__config['target'])
+    #         __config['target'] = url
+    #         ss = url.split('.')
+    #         ss.insert(0, 'litepwd')
+    #         if len(ss) < 3:
+    #             error_exit("Bad uri or url!")
+    #         group = ss[-2]
+    #         if group in ['com', 'net', 'org', 'gov', 'wiki']:
+    #             alias = ss[-3]
+    #         __config['group'] = group
+    #         # 获取随机字符串
+    #     else:  # __config['input'] == True
+    #         # 尝试处理用户输入的内容
+    #         ss = __config['target'].split(".")
+    #         ss.insert(0, 'litepwd')
+    #         if len(ss) >= 3:
+    #             group = ss[-2]
+    #             if group in ['com', 'net', 'org', 'gov', 'wiki']:
+    #                 group = ss[-3]
+    #             __config['group'] = group
+    if not __config['input']:
+        __config['target'] = __get_url(__config['target'])
     password = gen_password(__config['length'])
+    if __config['group']:
+        # 查询group有无记录
+        res = sqlcipher.query_by_group(__config['group'])
+        if len(res) > 0:
+            password = res[0]['password']
     err = sqlcipher.insert(
         name=__config['target'],
         val=password,
-        alias=__config['alias'] if __config['alias'] else __config['target'],
+        _group=__config['group'] if __config['group'] else __config['target'],
         create_time=int(time())
     )
     if err:
@@ -281,12 +288,35 @@ def store(sqlcipher):
 
 
 def query_password(sqlcipher):
-    # alias
-    if not __config['target'] or __config['target'].replace(" ", "") == "":
-        error_exit("Nothing input.")
-    key = __config['target'].replace("'", "").replace('"', "")
-    # 先查alias  若有多个则再查name  若name没有查到 则让用户在多个alias之间选择
-
+    key = __config['target']
+    if not __config['input']:
+        key = __get_url(key)
+    # 先查name
+    res = sqlcipher.query_by_name(key)
+    size = len(res)
+    if size == 1:
+        __out(res[0]['password'])
+        return
+    # 后查group
+    res = sqlcipher.query_by_group(key)
+    size = len(res)
+    if size > 0:
+        __out(res[0]['password'])
+        return
+    # 再模糊查name 和group
+    # group
+    # if not __config['target'] or __config['target'].replace(" ", "") == "":
+    #     error_exit("Nothing input.")
+    # key = __config['target'].replace("'", "").replace('"', "")
+    # #     !!! 先查alias  若有多个则再查name  若name没有查到 则让用户在多个alias之间选择
+    # res = sqlcipher.query_by_alias(key)
+    # size = len(res)
+    # if size > 1:
+    #     # 查name
+    #     pass
+    # elif size == 1:
+    #     # 数据唯一直接输出
+    #     __out(res[0]['password'])
 
 
 def __out(password):

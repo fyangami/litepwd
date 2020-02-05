@@ -2,6 +2,7 @@
 import os
 from subprocess import Popen, PIPE
 from utils import print_cyan, error_exit
+from log import logger
 
 
 class SqlcipherExecutor:
@@ -30,7 +31,7 @@ class SqlcipherExecutor:
                         id integer primary key autoincrement,
                         name text unique,
                         val text,
-                        alias text,
+                        _group text,
                         create_time int
                     );
                 """)
@@ -79,17 +80,41 @@ class SqlcipherExecutor:
     def query_all(self, table_name='store', **kwargs) -> list:
         pass
 
-    def query_by_alias(self, alias, table_name='store') -> list:
+    def query_by_group(self, key, table_name='store', like=False) -> list:
+        return self.__query_by(key, "group", table_name, like)
+
+    def __query_by(self, key, by, table_name, like) -> list:
         sql = f"""
-            select * from {table_name} where alias='{alias}';
+            select * from {table_name} where {by}{" like " if like else "="}'{"%" if like else ""}{key}{"%" if like else ""}';
         """
         out, err = self.__sqlcipher_executor(sql)
         if err != self.__empty_msg:
             raise self.SqlcipherException(err.decode())
-        return self.__result_splitter(out)
+        if table_name == 'store':
+            return self.__store_dict_creator(out.decode())
+        return self.__result_splitter(out.decode())
 
-    def query_by_name(self) -> dict:
-        pass
+    def __store_dict_creator(self, out) -> list:
+        lines = self.__result_splitter(out)
+        res = []
+        try:
+            for line in lines:
+                _ = line.split("|")
+                res.append({
+                    "id": _[0],
+                    "name": _[1],
+                    "password": _[2],
+                    "_group": _[3],
+                    "create_time": _[4]
+                })
+            print(res)
+            return res
+        except KeyError as e:
+            logger.error(e)
+            error_exit()
+
+    def query_by_name(self, key, table_name="store", like=False) -> list:
+        return self.__query_by(key, "name", table_name, like)
 
     @staticmethod
     def __data_join(**kwargs) -> tuple:
