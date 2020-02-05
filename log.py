@@ -10,9 +10,4 @@ logging.basicConfig(
 )
 
 
-def print_error(msg):
-    logging.error(msg)
-
-
-def print_warning(msg):
-    logging.warning(msg)
+logger = logging

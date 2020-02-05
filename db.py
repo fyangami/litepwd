@@ -1,17 +1,7 @@
 #  sqlcipher executor by fyang
 import os
 from subprocess import Popen, PIPE
-
-
-# # print(os.path.dirname(__file__))
-# __HOME = os.path.dirname(__file__)
-# SQLCIPHER = f"{__HOME}/bin/sqlcipher"
-# __BASE_EXEC = f"""
-#     {__HOME}
-# """
-# __CHECK_SQL = f"""
-#     PRAGMA key = {__config['password']}
-# """
+from utils import print_cyan, error_exit
 
 
 class SqlcipherExecutor:
@@ -34,18 +24,21 @@ class SqlcipherExecutor:
         if err == self.__empty_msg:
             tables = self.__result_splitter(out.decode())
             if 'store' not in tables:
+                print_cyan("[*] init db...")
                 o, e = self.__sqlcipher_executor("""
                     create table store(
-                        id int primary key,
+                        id integer primary key autoincrement,
                         name text unique,
                         val text,
-                        alias text unique,
+                        alias text,
                         create_time int
                     );
                 """)
-                return e == self.__empty_msg
-            else:
-                return True
+                if e != self.__empty_msg:
+                    os.remove(self.db_path)
+                    error_exit()
+                print_cyan('[*] successfully!')
+            return True
         return False
 
     @staticmethod
@@ -66,27 +59,36 @@ class SqlcipherExecutor:
             print(popen.args)
         return popen.communicate(timeout=self.__timeout)
 
-    def insert(self, table_name: str, **kwargs) -> bool:
+    def insert(self, table_name='store', **kwargs) -> str:
         column, vals = self.__data_join(**kwargs)
-        sql = """
-            insert into {table_name}({column[:-1]}) values ({vals[:-1]})
+        sql = f"""
+            insert into {table_name}(id, {column[:-1]}) values (null, {vals[:-1]})
         """
-        out, err = self.__popen_creator(sql)
-        return err == self.__empty_msg
+        out, err = self.__sqlcipher_executor(sql)
+        return err.decode()
 
-    def delete(self, table_name: str, **kwargs) -> bool:
+    def delete(self, table_name='store', **kwargs) -> bool:
         pass
 
-    def update(self, table_name: str, **kwargs) -> bool:
+    def update(self, table_name='store', **kwargs) -> bool:
         pass
 
-    def query_one(self, table_name: str, **kwargs) -> dict:
+    def query_one(self, table_name='store', **kwargs) -> dict:
         pass
 
-    def query_all(self, table_name: str, **kwargs) -> list:
+    def query_all(self, table_name='store', **kwargs) -> list:
         pass
 
-    def query_like(self, table_name: str, **kwargs) -> list:
+    def query_by_alias(self, alias, table_name='store') -> list:
+        sql = f"""
+            select * from {table_name} where alias='{alias}';
+        """
+        out, err = self.__sqlcipher_executor(sql)
+        if err != self.__empty_msg:
+            raise self.SqlcipherException(err.decode())
+        return self.__result_splitter(out)
+
+    def query_by_name(self) -> dict:
         pass
 
     @staticmethod
@@ -95,7 +97,7 @@ class SqlcipherExecutor:
         vals = ""
         for k, v in kwargs.items():
             column += f"{k},"
-            vals += f"{v},"
+            vals += f"'{v}',"
         return column, vals
 
     class SqlcipherException(Exception):

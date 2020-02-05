@@ -21,4 +21,6 @@ if __name__ == '__main__':
     # print(gen_hash("litepwd", 'demo'))
     # main() 6e4eaf0f1179a7f8de4d0fb991cd9d48f5bbf274bba6be7eb9f45c2e903731be
     main()
+    print(gen_password(16))
+    # print(SqlcipherExecutor('litepwd', "123", debug=True).insert(name="'fyang"))
 

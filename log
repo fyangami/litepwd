@@ -2,3 +2,20 @@ division by zero
 2020-02-02 15:58:49 [MainThread] [root] [ERROR] log.py[line:23] division by zero
 2020-02-03 13:03:08 [MainThread] [root] [ERROR] log.py[line:14] 'SqlcipherExecutor' object has no attribute 'password'
 2020-02-03 13:43:57 [MainThread] [root] [ERROR] log.py[line:14] 'str' object has no attribute 'trim'
+2020-02-04 17:58:56 [MainThread] [root] [ERROR] log.py[line:14] Error: 1 values for 4 columns
+
+2020-02-04 18:16:58 [MainThread] [root] [ERROR] log.py[line:14] Error: UNIQUE constraint failed: store.alias
+
+2020-02-04 18:24:04 [MainThread] [root] [ERROR] log.py[line:14] /bin/sh: -c: line 2: unexpected EOF while looking for matching `''
+/bin/sh: -c: line 3: syntax error: unexpected end of file
+
+2020-02-04 18:25:11 [MainThread] [root] [ERROR] log.py[line:14] /bin/sh: -c: line 2: unexpected EOF while looking for matching `''
+/bin/sh: -c: line 3: syntax error: unexpected end of file
+
+2020-02-04 19:09:46 [MainThread] [root] [ERROR] litepwd.py[line:280] Error: near "S": syntax error
+
+2020-02-04 19:37:46 [MainThread] [root] [ERROR] litepwd.py[line:280] /bin/sh: -c: line 2: unexpected EOF while looking for matching `''
+/bin/sh: -c: line 3: syntax error: unexpected end of file
+
+2020-02-04 19:50:31 [MainThread] [root] [ERROR] litepwd.py[line:278] Error: near "mWZ4tg$": syntax error
+

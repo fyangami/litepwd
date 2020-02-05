@@ -3,7 +3,7 @@
 from ctypes import cdll, c_int, c_char_p
 from binascii import hexlify
 from hashlib import pbkdf2_hmac
-from random import seed, randint
+from random import seed, randint, choice
 
 
 TERMINAL_COLORS = {
@@ -17,26 +17,26 @@ ERROR_MSG = f"{TERMINAL_COLORS['RED']}incorrect argument! please using --help an
 
 SYMBOL = ['~', '`', '!', '@', '#', '$', '%', '^',
           '&', '*', '(', ')', '-', '_', '=', '+',
-          '[', '{', '}', ']', '\\', '\'', '"',
-          ':', ';', ',', '<', '.', '>', '/', '?']
+          '[', '{', '}', ']', '\\', '"',':', ';',
+          ',', '<', '.', '>', '/', '?']
 CHARACTERS = [chr(ch) for ch in range(65, 91)] + [chr(ch) for ch in range(97, 123)]
-DIGITS = [_ for _ in range(10)]
+DIGITS = [str(_) for _ in range(10)]
 
 
-def print_green(msg: str):
-    __print_color("GREEN", msg)
+def print_green(msg: str, end='\n'):
+    __print_color("GREEN", msg, end)
 
 
-def print_red(msg: str):
-    __print_color("RED", msg)
+def print_red(msg: str, end='\n'):
+    __print_color("RED", msg, end)
 
 
-def print_cyan(msg: str):
-    __print_color('CYAN', msg)
+def print_cyan(msg: str, end='\n'):
+    __print_color('CYAN', msg, end)
 
 
-def __print_color(color, msg):
-    print(TERMINAL_COLORS[color], msg, TERMINAL_COLORS['RESET'])
+def __print_color(color, msg, end):
+    print(TERMINAL_COLORS[color], msg, TERMINAL_COLORS['RESET'], end=end)
 
 
 def __pwd_input(prompt: str) -> str:
@@ -54,15 +54,29 @@ def __pwd_input(prompt: str) -> str:
 
 
 def gen_hash(user: str, password: str) -> str:
-    _salt = __random(user)
-    bs = pbkdf2_hmac("sha256", password.encode("utf8"), _salt.encode("utf8"), 1000)
+    bs = pbkdf2_hmac("sha256", password.encode("utf8"), user.encode("utf8"), 1000)
     return hexlify(bs).decode("utf8")
 
 
-def __random(s: str) -> str:
-    bs = s.encode("utf8")
-    _seed = 0
-    for b in bs:
-        _seed += b
-    seed(_seed)
-    return str(randint(1000000, 9999999))
+def gen_password(length=16) -> str:
+    if length < 16:
+        error_exit("length too short!")
+    password = ["*" for _ in range(length)]
+    seq = [i for i in range(length)]
+    a = choice(seq)
+    seq.remove(a)
+    b = choice(seq)
+    seq.remove(b)
+    c = choice(seq)
+    seq.remove(c)
+    password[a] = choice(SYMBOL)
+    password[b] = choice(DIGITS)
+    password[c] = choice(CHARACTERS)
+    for index in seq:
+        password[index] = choice(SYMBOL + DIGITS + CHARACTERS)
+    return "".join(password)
+
+
+def error_exit(msg='Unknown error! please try again.'):
+    print_red(msg)
+    exit(0)

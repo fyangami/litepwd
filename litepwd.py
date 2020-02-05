@@ -6,19 +6,22 @@ from optparse import OptionParser
 from utils import __pwd_input
 from utils import *
 from db import *
-from log import *
+from log import logger
 from os import path
-
+from time import time, sleep
 
 __config = {
     "user": "litepwd",
     "password": None,
     "target": None,
+    "input": False,  # 默认从剪切板读取
     "key": None,
     "is_clip": True,
     "length": 16,
     "data": None,
     "out": 1,
+    "init": False,
+    "alias": None
 }
 
 __mode = {
@@ -30,42 +33,43 @@ __mode = {
     "shell": False,
     "random": False,
     "set_account_password": False,
+    "generate": False
 }
+
+
+def init_after():
+    while True:
+        choose = input("do you want read clipboard to generate password?[Y/n]:")
+        if choose == '' or choose.startswith('y') or choose.startswith('Y'):
+            # __config['target'] = paste()
+            break
+        elif choose.startswith("N") or choose.startswith("n"):
+            print("bye~")
+            exit(0)
+        print_red("incorrect input! please try again.")
 
 
 def connect() -> SqlcipherExecutor:
     pwd = __pwd_input("password:")
     # 通过文件检查用户是否第一次登录
-    _init = False
     if not path.isfile(f".db/{__config['user']}"):
-        _init = True
+        __config['init'] = True
         repeat_pwd = __pwd_input("repeat:")
         if pwd != repeat_pwd:
-            print_red("incorrect input! please try again.")
-            exit(0)
+            error_exit("incorrect input! please try again.")
+        # 设置默认用户
+        if not path.exists(".db/user.default"):
+            with open(".db/user.default", "w") as f:
+                f.write(__config['user'])
     pwd_hash = gen_hash(__config['user'], pwd)
     db = f".db/{__config['user']}"
     try:
         sqlcipher = SqlcipherExecutor(db, pwd_hash, debug=True)
-        if _init:
-            print_cyan("[*] init db...")
-            print_cyan("[*] successfully!")
-            while True:
-                choose = input("do you want read clipboard?[Y/n]:")
-                if choose == '' or choose.startswith('y') or choose.startswith('Y'):
-                    # __config['target'] = paste()
-                    break
-                elif choose.startswith("N") or choose.startswith("n"):
-                    print("bye~")
-                    exit(0)
-                print_error("incorrect input! please try again.")
         return sqlcipher
     except SqlcipherExecutor.SqlcipherException:
-        print(TERMINAL_COLORS['RED'], "Login Failed!", TERMINAL_COLORS['RESET'])
-        print("please check your password or account.")
-        exit(0)
+        error_exit("Login Failed!\nplease check your password or account.")
     except Exception as e:
-        print_error(e)
+        logger.error(e)
 
 
 def check() -> bool:
@@ -76,8 +80,9 @@ def check() -> bool:
 
 
 def init(options):
-
     # init __config
+    if options.is_generate:
+        __mode['generate'] = True
     if options.display:
         __config['is_clip'] = False
     if options.list_users:
@@ -96,19 +101,25 @@ def init(options):
         __mode['backup'] = True
     if options.length:
         if options.length < 8 or options.length > 64:
-            print(f"{TERMINAL_COLORS['RED']} length out of range: 8-64!{TERMINAL_COLORS['RESET']}")
-            print(ERROR_MSG)
-            exit(0)
+            error_exit(f"length out of range: 8-64!\n{ERROR_MSG}")
         __config["length"] = options.length
     if options.new_password:
         __mode['set_account_password'] = True
     if options.is_shell:
         __mode["shell"] = True
+    if options.alias:
+        __config['alias'] = options.alias
 
 
 def option_handle():
-    usage = "usage: %prog mode:-[l|r|s|u|b|c|-set-password] arg"
+    usage = "usage: %prog mode:-[g|l|r|s|u|b|c|-set-password] arg"
     opt_parser = OptionParser(usage)
+    opt_parser.add_option(
+        "-g", "--generate",
+        action="store_true",
+        dest="is_generate",
+        help="generate password to arg. use --length"
+    )
     opt_parser.add_option(  # 控制是否在终端打印
         "-d", "--display",
         action="store_true",
@@ -154,7 +165,7 @@ def option_handle():
         "-b", "--backup",
         action="store_true",
         dest="backup",
-        help="backup your all password to file.example: litepwd -b password[.txt/.xls/.cvs/.json/.xml]"
+        help="backup your all password to file.example: litepwd -b password[.txt/.xls/.csv/.json/.xml]"
     )
     opt_parser.add_option(
         "--length",
@@ -173,28 +184,171 @@ def option_handle():
         dest="is_shell",
         help="get into the shell."
     )
+    opt_parser.add_option(
+        "--alias",
+        dest="alias",
+        help="set alias to target."
+    )
     (options, args) = opt_parser.parse_args()
     if len(args) > 1:
-        opt_parser.error(ERROR_MSG)
-        exit(0)
+        error_exit(ERROR_MSG)
     if len(args) == 1:
         __config['target'] = args[0]
+        __config['input'] = True
     else:
         __config['target'] = paste()
     return options
+
+
+# 列出所有用户
+def list_user():
+    pass
+
+
+# 更改默认用户
+def set_default():
+    pass
+
+
+# 注册用户
+def register():
+    pass
+
+
+# 更新某个密码
+def update():
+    pass
+
+
+# shell
+def shell():
+    pass
+
+
+# 获取一个随机字符串
+def random():
+    pass
+
+
+# 备份
+def backup():
+    pass
+
+
+# 更改账户密码
+def set_account_password():
+    pass
+
+
+# 密码入库
+def store(sqlcipher):
+    if not __config['target']:
+        error_exit("Nothing input.")
+    if not __config['alias']:
+        if not __config['input']:
+            # 剪切板只支持读取url
+            url = __get_url(__config['target'])
+            __config['target'] = url
+            ss = url.split('.')
+            ss.insert(0, 'litepwd')
+            if len(ss) < 3:
+                error_exit("Bad uri or url!")
+            alias = ss[-2]
+            if alias in ['com', 'net', 'org', 'gov', 'wiki']:
+                alias = ss[-3]
+            __config['alias'] = alias
+            # 获取随机字符串
+        else:  # __config['input'] == True
+            # 尝试处理用户输入的内容
+            ss = __config['target'].split(".")
+            ss.insert(0, 'litepwd')
+            if len(ss) >= 3:
+                alias = ss[-2]
+                if alias in ['com', 'net', 'org', 'gov', 'wiki']:
+                    alias = ss[-3]
+                __config['alias'] = alias
+    password = gen_password(__config['length'])
+    err = sqlcipher.insert(
+        name=__config['target'],
+        val=password,
+        alias=__config['alias'] if __config['alias'] else __config['target'],
+        create_time=int(time())
+    )
+    if err:
+        logger.error(err)
+        error_exit()
+    __out(password)
+
+
+def query_password(sqlcipher):
+    # alias
+    if not __config['target'] or __config['target'].replace(" ", "") == "":
+        error_exit("Nothing input.")
+    key = __config['target'].replace("'", "").replace('"', "")
+    # 先查alias  若有多个则再查name  若name没有查到 则让用户在多个alias之间选择
+
+
+
+def __out(password):
+    if __config['is_clip']:
+        copy(password)
+        print_green("the password has been copied to the clipboard.")
+    else:
+        print_green(f"{__config['target']} -> password(disappear in 5 second):", end="")
+        print(password)
+        print(end="")
+        try:
+            sleep(5)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            print("\033[1A\033[2K")
+
+
+def __get_url(uri: str):
+    ss = uri.split("/")
+    print(ss)
+    try:
+        url = ss[0]
+        if len(ss[0].split(".")) < 2:
+            url = ss[2]
+            return url
+    except IndexError:
+        error_exit("input is not uri!")
+    # if ss[0].replace(" ", '') == '':
+
+
+def action(sqlcipher):
+    if __mode['list_users']:
+        list_user(sqlcipher)
+    elif __mode['register']:
+        register(sqlcipher)
+    elif __mode['set_default']:
+        set_default(sqlcipher)
+    elif __mode['backup']:
+        backup(sqlcipher)
+    elif __mode['shell']:
+        shell(sqlcipher)
+    elif __mode['random']:
+        random(sqlcipher)
+    elif __mode['set_account_password']:
+        set_account_password(sqlcipher)
+    elif __mode['generate']:
+        store(sqlcipher)
+    else:
+        query_password(sqlcipher)
 
 
 def main():
     options = option_handle()
     init(options)
     if not check():
-        print(TERMINAL_COLORS['RED'], "incorrect option!", TERMINAL_COLORS['RESET'])
-        print("usage: -[l|r|s|u|b|c|-set-password] arg")
-        exit(0)
+        error_exit("incorrect option!\nusage: -[l|r|s|u|b|c|-set-password] arg")
     sqlcipher = connect()
     if not sqlcipher:
-        print(TERMINAL_COLORS['RED'], "Unknown error.", TERMINAL_COLORS['RESET'])
-        exit(0)
+        error_exit()
+    # 连接正常
+    action(sqlcipher)
 
 
 if __name__ == '__main__':
