@@ -19,3 +19,9 @@ division by zero
 
 2020-02-04 19:50:31 [MainThread] [root] [ERROR] litepwd.py[line:278] Error: near "mWZ4tg$": syntax error
 
+2020-02-05 15:54:54 [MainThread] [root] [ERROR] litepwd.py[line:285] Error: UNIQUE constraint failed: store.name
+
+2020-02-05 15:58:51 [MainThread] [root] [ERROR] litepwd.py[line:285] Error: UNIQUE constraint failed: store.name
+
+2020-02-06 16:06:08 [MainThread] [root] [ERROR] litepwd.py[line:285] Error: UNIQUE constraint failed: store.name
+

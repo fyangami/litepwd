@@ -16,8 +16,15 @@
 #define BACKSPACE "\033[1D"
 #define DELETE_CHAR "\033[1X"
 #define ASCII_DEL 127
-#endif
+#define UP_FLAG 1
+#define DOWN_FLAG 2
+#define ENTER 10
 
 int system(char *command);
 static inline char getche();
+static inline char getch();
+static inline void print_green(char *);
+static int user_choose_get_key();
 int __input(char *, char *);
+int __user_choose(char *lines[], int);
+#endif

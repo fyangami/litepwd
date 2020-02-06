@@ -3,7 +3,7 @@
 
 from pyperclip import copy, paste
 from optparse import OptionParser
-from utils import __pwd_input
+from utils import __pwd_input, __user_choose
 from utils import *
 from db import *
 from log import logger
@@ -11,7 +11,7 @@ from os import path
 from time import time, sleep
 
 __config = {
-    "user": "litepwd",
+    "user": None,
     "password": None,
     "target": None,
     "input": False,  # 默认从剪切板读取
@@ -21,19 +21,22 @@ __config = {
     "data": None,
     "out": 1,
     "init": False,
-    "group": None
+    "group": None,
+    "default_user_path": "./.db/user.default"
 }
 
 __mode = {
-    "set_default": False,
-    "list_users": False,
-    "register": False,
-    "update": False,
-    "backup": False,
-    "shell": False,
-    "random": False,
-    "set_account_password": False,
-    "generate": False
+    "set_default": False,   # 设置默认账户
+    "list_users": False,   # 列出所有账户
+    # "register": False,   # 注册一个账户
+    "update": False,  # 更新一个store
+    "backup": False,  # 备份数据
+    "shell": False,  # 进入shell
+    "random": False,  # 获取一个随机字符串
+    "set_account_password": False,  # 设置账户密码
+    "generate": False,  # 生成密码
+    "list_store": False,  # 列出所有store
+    "join_group": False,  # 更改store的group字段
 }
 
 
@@ -58,9 +61,9 @@ def connect() -> SqlcipherExecutor:
         if pwd != repeat_pwd:
             error_exit("incorrect input! please try again.")
         # 设置默认用户
-        if not path.exists(".db/user.default"):
-            with open(".db/user.default", "w") as f:
-                f.write(__config['user'])
+        # if not path.exists(".db/user.default"):
+        #     with open(".db/user.default", "w") as f:
+        #         f.write(__config['user'])
     pwd_hash = gen_hash(__config['user'], pwd)
     db = f".db/{__config['user']}"
     try:
@@ -87,8 +90,8 @@ def init(options):
         __config['is_clip'] = False
     if options.list_users:
         __mode['list_users'] = True
-    if options.register:
-        __mode['register'] = True
+    # if options.register:
+    #     __mode['register'] = True
     if options.random:
         __mode['random'] = True
     if options.user:
@@ -109,6 +112,8 @@ def init(options):
         __mode["shell"] = True
     if options.group:
         __config['group'] = options.group
+    if options.list_store:
+        __mode['list_store'] = True
 
 
 def option_handle():
@@ -127,17 +132,17 @@ def option_handle():
         help=f"{TERMINAL_COLORS['RED']}Warning{TERMINAL_COLORS['RESET']}: display your password in terminal."
     )
     opt_parser.add_option(
-        "-l", "--list",
+        "--list-user",
         action="store_true",
         dest="list_users",
         help="List all registered user and exit."
     )
-    opt_parser.add_option(
-        "-r", "--register",
-        action="store_true",
-        dest="register",
-        help="register one account to db."
-    )
+    # opt_parser.add_option(
+    #     "-r", "--register",
+    #     action="store_true",
+    #     dest="register",
+    #     help="register one account to db."
+    # )
     opt_parser.add_option(
         "--random",
         action="store_true",
@@ -147,7 +152,7 @@ def option_handle():
     opt_parser.add_option(
         "-a", "--account",
         dest="user",
-        help="using this account."
+        help="using this account (auto create)."
     )
     opt_parser.add_option(
         "-s", "--set-default",
@@ -189,6 +194,17 @@ def option_handle():
         dest="group",
         help="add to group using same password."
     )
+    opt_parser.add_option(
+        "-l", "--list-store",
+        action="store_true",
+        dest="list_store",
+        help="list all store data for (default)account."
+    )
+    # opt_parser.add_option(
+    #     "j", "--join",
+    #     dest="join_group",
+    #     help="join store to group. waring: old password will overwrite!"
+    # )
     (options, args) = opt_parser.parse_args()
     if len(args) > 1:
         error_exit(ERROR_MSG)
@@ -202,17 +218,25 @@ def option_handle():
 
 # 列出所有用户
 def list_user():
-    pass
+    files = os.listdir("./.db")
+    for f in files:
+        if f != __config['default_user_path'].split("/")[-1]:
+            print(f)
 
 
 # 更改默认用户
 def set_default():
-    pass
+    user = __config['target']
+    if not os.path.exists(f".db/{user}"):
+        error_exit("user does not exist!")
+    with open(__config['default_user_path'], "w") as f:
+        f.write(user)
+    print_green("[*] successfully!")
 
 
-# 注册用户
-def register():
-    pass
+# # 注册用户
+# def register():
+#     pass
 
 
 # 更新某个密码
@@ -227,7 +251,7 @@ def shell():
 
 # 获取一个随机字符串
 def random():
-    pass
+    print(gen_password())
 
 
 # 备份
@@ -240,33 +264,16 @@ def set_account_password():
     pass
 
 
+# 列出所有store
+def list_store(sqlcipher):
+    store_list = sqlcipher.query_all()
+    format_print_store(store_list)
+
+
 # 密码入库
 def store(sqlcipher):
     if not __config['target']:
         error_exit("Nothing input.")
-    # if not __config['group']:
-    #     if not __config['input']:
-    #         # 剪切板只支持读取url
-    #         url = __get_url(__config['target'])
-    #         __config['target'] = url
-    #         ss = url.split('.')
-    #         ss.insert(0, 'litepwd')
-    #         if len(ss) < 3:
-    #             error_exit("Bad uri or url!")
-    #         group = ss[-2]
-    #         if group in ['com', 'net', 'org', 'gov', 'wiki']:
-    #             alias = ss[-3]
-    #         __config['group'] = group
-    #         # 获取随机字符串
-    #     else:  # __config['input'] == True
-    #         # 尝试处理用户输入的内容
-    #         ss = __config['target'].split(".")
-    #         ss.insert(0, 'litepwd')
-    #         if len(ss) >= 3:
-    #             group = ss[-2]
-    #             if group in ['com', 'net', 'org', 'gov', 'wiki']:
-    #                 group = ss[-3]
-    #             __config['group'] = group
     if not __config['input']:
         __config['target'] = __get_url(__config['target'])
     password = gen_password(__config['length'])
@@ -283,8 +290,10 @@ def store(sqlcipher):
     )
     if err:
         logger.error(err)
+        if "UNIQUE constraint" in err:
+            error_exit("Data already existed!")
         error_exit()
-    __out(password)
+    __out(__config['target'], password)
 
 
 def query_password(sqlcipher):
@@ -295,36 +304,33 @@ def query_password(sqlcipher):
     res = sqlcipher.query_by_name(key)
     size = len(res)
     if size == 1:
-        __out(res[0]['password'])
+        __out(res[0]['name'], res[0]['password'])
         return
     # 后查group
     res = sqlcipher.query_by_group(key)
     size = len(res)
     if size > 0:
-        __out(res[0]['password'])
+        __out(res[0]['name'], res[0]['password'])
         return
-    # 再模糊查name 和group
-    # group
-    # if not __config['target'] or __config['target'].replace(" ", "") == "":
-    #     error_exit("Nothing input.")
-    # key = __config['target'].replace("'", "").replace('"', "")
-    # #     !!! 先查alias  若有多个则再查name  若name没有查到 则让用户在多个alias之间选择
-    # res = sqlcipher.query_by_alias(key)
-    # size = len(res)
-    # if size > 1:
-    #     # 查name
-    #     pass
-    # elif size == 1:
-    #     # 数据唯一直接输出
-    #     __out(res[0]['password'])
+    res_find = sqlcipher.query_by_name(key, like=True)
+    if not len(res_find):
+        error_exit("Data not found!")
+
+    # 将所有选项列出给用户选择
+    choose = __user_choose([item['name'] for item in res_find])
+    __out(res_find[choose]['name'], res_find[choose]['password'])
 
 
-def __out(password):
+# 拿给c实现吧。。。。
+# def user_choose(choose_list: list, label):
+
+
+def __out(name, password):
     if __config['is_clip']:
         copy(password)
-        print_green("the password has been copied to the clipboard.")
+        print_green(f"the password has been copied to the clipboard<{TERMINAL_COLORS['CYAN']}{name}{TERMINAL_COLORS['GREEN']}>.")
     else:
-        print_green(f"{__config['target']} -> password(disappear in 5 second):", end="")
+        print_green(f"{TERMINAL_COLORS['CYAN']}{name}{TERMINAL_COLORS['GREEN']} -> password(disappear in 5 second):", end="")
         print(password)
         print(end="")
         try:
@@ -350,30 +356,48 @@ def __get_url(uri: str):
 
 def action(sqlcipher):
     if __mode['list_users']:
-        list_user(sqlcipher)
-    elif __mode['register']:
-        register(sqlcipher)
+        list_user()
+    # elif __mode['register']:
+    #     register(sqlcipher)
     elif __mode['set_default']:
-        set_default(sqlcipher)
+        set_default()
     elif __mode['backup']:
         backup(sqlcipher)
     elif __mode['shell']:
         shell(sqlcipher)
     elif __mode['random']:
-        random(sqlcipher)
+        random()
     elif __mode['set_account_password']:
         set_account_password(sqlcipher)
     elif __mode['generate']:
         store(sqlcipher)
+    elif __mode['list_store']:
+        list_store(sqlcipher)
     else:
         query_password(sqlcipher)
 
 
+def read_default_user():
+    if os.path.exists(__config['default_user_path']) is False:
+        user = __config['user'] if __config['user'] else "litepwd"
+        f = open(__config['default_user_path'], "w")
+        f.write(user)
+        f.close()
+    else:
+        f = open(__config['default_user_path'], "r")
+        __config['user'] = f.readline()
+        f.close()
+
+
 def main():
+    # 获取默认用户
+    read_default_user()
     options = option_handle()
     init(options)
+    # 参数检查
     if not check():
-        error_exit("incorrect option!\nusage: -[l|r|s|u|b|c|-set-password] arg")
+        error_exit("incorrect option!\nusage: -[l|r|s|u|b|c|-set-password|-list-users] arg")
+    # 创建连接
     sqlcipher = connect()
     if not sqlcipher:
         error_exit()

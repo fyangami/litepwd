@@ -77,11 +77,17 @@ class SqlcipherExecutor:
     def query_one(self, table_name='store', **kwargs) -> dict:
         pass
 
-    def query_all(self, table_name='store', **kwargs) -> list:
-        pass
-
+    def query_all(self, table_name='store') -> list:
+        sql = f"""
+            select * from {table_name};
+        """
+        out, err = self.__sqlcipher_executor(sql)
+        if err != self.__empty_msg:
+            logger.error(err.decode())
+            error_exit()
+        return self.__store_dict_creator(out.decode())
     def query_by_group(self, key, table_name='store', like=False) -> list:
-        return self.__query_by(key, "group", table_name, like)
+        return self.__query_by(key, "_group", table_name, like)
 
     def __query_by(self, key, by, table_name, like) -> list:
         sql = f"""
@@ -89,7 +95,8 @@ class SqlcipherExecutor:
         """
         out, err = self.__sqlcipher_executor(sql)
         if err != self.__empty_msg:
-            raise self.SqlcipherException(err.decode())
+            logger.error(err.decode())
+            error_exit()
         if table_name == 'store':
             return self.__store_dict_creator(out.decode())
         return self.__result_splitter(out.decode())
