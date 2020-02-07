@@ -4,8 +4,6 @@ from ctypes import cdll, c_int, c_char_p
 from binascii import hexlify
 from hashlib import pbkdf2_hmac
 from random import choice
-from sys import stdin
-from os import system
 from time import localtime, strftime
 
 
@@ -24,8 +22,8 @@ ERROR_MSG = f"{TERMINAL_COLORS['RED']}incorrect argument! please using --help an
 
 SYMBOL = ['~', '`', '!', '@', '#', '$', '%', '^',
           '&', '*', '(', ')', '-', '_', '=', '+',
-          '[', '{', '}', ']', '\\', '"',':', ';',
-          ',', '<', '.', '>', '/', '?']
+          '[', '{', '}', ']', '\\', '\"', ':', ';',
+          ',', '<', '.', '>', '/', '?', "\'"]
 CHARACTERS = [chr(ch) for ch in range(65, 91)] + [chr(ch) for ch in range(97, 123)]
 DIGITS = [str(_) for _ in range(10)]
 
@@ -101,12 +99,25 @@ def gen_password(length=16) -> str:
     password[c] = choice(CHARACTERS)
     for index in seq:
         password[index] = choice(SYMBOL + DIGITS + CHARACTERS)
-    return "".join(password)
+    __pwd = ""
+    for ch in password:
+        if ch == '"':
+            __pwd += '\\\"'
+        elif ch == "'":
+            __pwd += "\\\'"
+        elif ch == '\\':
+            __pwd += "\\\\"
+        elif ch == "`":
+            __pwd += "\\`"
+        else:
+            __pwd += ch
+    print_cyan(__pwd)
+    return __pwd
 
 
 def format_print_store(stores: list, hidden=True):
     print("{:^20}  |  {:^20}  |  {:^20}  |  {:^16}".format("store_name", "group", "    create_time    ", "password"))
-    print("#"*90)
+    print("#"*96)
     for store in stores:
         print("{:^20}  |  {:^20}  |  {:^20}  |  {:^16}".format(
             store['name'],
@@ -119,9 +130,10 @@ def format_print_store(stores: list, hidden=True):
         ))
     if not len(stores):
         print("{:^20}  |  {:^20}  |  {:^20}  |  {:^16}".format("-", "-", "-", "?"))
-    print("#"*90)
+    print("#"*96)
 
 
-def error_exit(msg='Unknown error! please try again.'):
-    print_red(msg)
-    exit(0)
+def error_exit(msg='Unknown error! please try again.', prefix=True, shell=False):
+    print_red(("[-] " if prefix else "") + msg)
+    if not shell:
+        exit(0)

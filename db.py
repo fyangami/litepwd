@@ -10,13 +10,14 @@ class SqlcipherExecutor:
     __sqlcipher = f"{__base_dir}/bin/sqlcipher"
     __empty_msg = b''
 
-    def __init__(self, db: str, password: str, mode='list', timeout=3, debug=False):
+    def __init__(self, db: str, password: str, mode='list', timeout=3, debug=False, shell=False):
         self.db = db
         self.__password = password
         self.db_path = f"{self.__base_dir}/{db}"
         self.__mode = mode
         self.__timeout = timeout
         self.__debug = debug
+        self.shell = shell
         if not self.__check():
             raise self.SqlcipherException("login failed!")
 
@@ -37,7 +38,7 @@ class SqlcipherExecutor:
                 """)
                 if e != self.__empty_msg:
                     os.remove(self.db_path)
-                    error_exit()
+                    error_exit(shell=self.shell)
                 print_cyan('[*] successfully!')
             return True
         return False
@@ -60,11 +61,10 @@ class SqlcipherExecutor:
             print(popen.args)
         return popen.communicate(timeout=self.__timeout)
 
-    def insert(self, table_name='store', **kwargs) -> str:
-        column, vals = self.__data_join(**kwargs)
-        sql = f"""
-            insert into {table_name}(id, {column[:-1]}) values (null, {vals[:-1]})
-        """
+    def insert(self, name: str, val: str, _group: str, create_time: int, table_name='store') -> str:
+        # column, vals = self.__data_join(**kwargs)
+        sql = f"insert into {table_name}(id, name, val, _group, create_time) " \
+              f"values(null, '{name}', '{val}', '{_group}', {create_time})"
         out, err = self.__sqlcipher_executor(sql)
         return err.decode()
 
@@ -84,8 +84,9 @@ class SqlcipherExecutor:
         out, err = self.__sqlcipher_executor(sql)
         if err != self.__empty_msg:
             logger.error(err.decode())
-            error_exit()
+            error_exit(shell=self.shell)
         return self.__store_dict_creator(out.decode())
+
     def query_by_group(self, key, table_name='store', like=False) -> list:
         return self.__query_by(key, "_group", table_name, like)
 
@@ -96,7 +97,7 @@ class SqlcipherExecutor:
         out, err = self.__sqlcipher_executor(sql)
         if err != self.__empty_msg:
             logger.error(err.decode())
-            error_exit()
+            error_exit(shell=self.shell)
         if table_name == 'store':
             return self.__store_dict_creator(out.decode())
         return self.__result_splitter(out.decode())
@@ -118,7 +119,36 @@ class SqlcipherExecutor:
             return res
         except KeyError as e:
             logger.error(e)
+            error_exit(shell=self.shell)
+
+    def rekey(self, key):
+        sql = f"""
+            PRAGMA rekey = '{key}'
+        """
+        out, err = self.__sqlcipher_executor(sql)
+        if err != self.__empty_msg:
+            logger.error(err.decode())
+            error_exit(shell=self.shell)
+
+    def update_store_pwd(self, pwd_hash, table_name="store", name="", group="") -> bool:
+        q_sql = "select name from store where "
+        sql_part = f"_group='{group}'" if name == "" else f"name='{name}';"
+        q_sql += sql_part
+        print_cyan(q_sql)
+        out, err = self.__sqlcipher_executor(q_sql)
+        if err != self.__empty_msg:
+            logger.error(err.decode())
             error_exit()
+        # print_cyan(self.__result_splitter(out))
+        if not len(self.__result_splitter(out.decode())):
+            return False
+        u_sql = f"update store set val='{pwd_hash}' where "
+        u_sql += sql_part
+        o, e = self.__sqlcipher_executor(u_sql)
+        if e != self.__empty_msg:
+            logger.error(err.decode())
+            error_exit(shell=self.shell)
+        return True
 
     def query_by_name(self, key, table_name="store", like=False) -> list:
         return self.__query_by(key, "name", table_name, like)

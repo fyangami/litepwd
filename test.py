@@ -27,7 +27,9 @@ if __name__ == '__main__':
     # print(gen_hash("litepwd", 'demo'))
     # main() 6e4eaf0f1179a7f8de4d0fb991cd9d48f5bbf274bba6be7eb9f45c2e903731be
     main()
-    # print(gen_password(16))
+    # SqlcipherExecutor(".db/litepwd", 'f596fd6afdb4d70376b6093ebdc78686cac4cff533bec48f2390da82b9b09c48', debug=True)\
+    #     .insert("123", "123\"\'", "123", 123)
+    print(gen_password(16))
     # ipt = getche()
     # print(ipt)
     # res = __user_choose([

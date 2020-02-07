@@ -25,3 +25,16 @@ division by zero
 
 2020-02-06 16:06:08 [MainThread] [root] [ERROR] litepwd.py[line:285] Error: UNIQUE constraint failed: store.name
 
+2020-02-06 20:57:08 [MainThread] [root] [ERROR] db.py[line:138] Error: near "f596fd6afdb4d70376b6093ebdc78686cac4cff533bec48f2390da82b9b09c48": syntax error
+
+2020-02-06 20:59:28 [MainThread] [root] [ERROR] db.py[line:146] 
+2020-02-06 21:12:41 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-06 21:13:56 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 09:07:06 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 09:08:42 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 09:11:59 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 10:07:40 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 10:09:09 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 10:11:17 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 10:14:30 [MainThread] [root] [ERROR] db.py[line:148] 
+2020-02-07 10:15:29 [MainThread] [root] [ERROR] db.py[line:148] 
