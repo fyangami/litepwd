@@ -68,14 +68,14 @@ class SqlcipherExecutor:
         out, err = self.__sqlcipher_executor(sql)
         return err.decode()
 
-    def delete(self, table_name='store', **kwargs) -> bool:
-        pass
-
-    def update(self, table_name='store', **kwargs) -> bool:
-        pass
-
-    def query_one(self, table_name='store', **kwargs) -> dict:
-        pass
+    def delete(self, name, table_name='store') -> bool:
+        sql = f"delete from {table_name} where name='{name}'"
+        out, err = self.__sqlcipher_executor(sql)
+        if err != self.__empty_msg:
+            logger.error(err.decode())
+            error_exit(shell=self.shell)
+            return False
+        return True
 
     def query_all(self, table_name='store') -> list:
         sql = f"""
@@ -115,7 +115,6 @@ class SqlcipherExecutor:
                     "_group": _[3],
                     "create_time": _[4]
                 })
-            print(res)
             return res
         except KeyError as e:
             logger.error(e)
@@ -134,12 +133,12 @@ class SqlcipherExecutor:
         q_sql = "select name from store where "
         sql_part = f"_group='{group}'" if name == "" else f"name='{name}';"
         q_sql += sql_part
-        print_cyan(q_sql)
+        # print_cyan(q_sql)
         out, err = self.__sqlcipher_executor(q_sql)
         if err != self.__empty_msg:
             logger.error(err.decode())
-            error_exit()
-        # print_cyan(self.__result_splitter(out))
+            error_exit(shell=self.shell)
+            return False
         if not len(self.__result_splitter(out.decode())):
             return False
         u_sql = f"update store set val='{pwd_hash}' where "
@@ -148,6 +147,7 @@ class SqlcipherExecutor:
         if e != self.__empty_msg:
             logger.error(err.decode())
             error_exit(shell=self.shell)
+            return False
         return True
 
     def query_by_name(self, key, table_name="store", like=False) -> list:

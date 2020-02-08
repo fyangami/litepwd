@@ -5,8 +5,10 @@ from binascii import hexlify
 from hashlib import pbkdf2_hmac
 from random import choice
 from time import localtime, strftime
+from sys import exit
 
 
+HOME_PATH = "".join([_ + "/" for _ in __file__.split("/")[:-1]])[:-1]
 UP_CODE = b"\x1b[A"
 DOWN_CODE = b"\x1b[B"
 RIGHT_CODE = b"\x1b[C"
@@ -16,6 +18,7 @@ TERMINAL_COLORS = {
     "RED": '\033[31m',
     "GREEN": '\033[32m',
     "CYAN": '\033[36m',
+    "YELLOW": '\033[33m',
     "LIGHT_GREEN": '\033[1;32m',
 }
 ERROR_MSG = f"{TERMINAL_COLORS['RED']}incorrect argument! please using --help and try again!{TERMINAL_COLORS['RESET']}"
@@ -23,7 +26,7 @@ ERROR_MSG = f"{TERMINAL_COLORS['RED']}incorrect argument! please using --help an
 SYMBOL = ['~', '`', '!', '@', '#', '$', '%', '^',
           '&', '*', '(', ')', '-', '_', '=', '+',
           '[', '{', '}', ']', '\\', '\"', ':', ';',
-          ',', '<', '.', '>', '/', '?', "\'"]
+          ',', '<', '.', '>', '/', '?']
 CHARACTERS = [chr(ch) for ch in range(65, 91)] + [chr(ch) for ch in range(97, 123)]
 DIGITS = [str(_) for _ in range(10)]
 
@@ -32,6 +35,10 @@ DATE_FMT = "%Y-%m-%d %H:%M:%S"
 
 def print_green(msg: str, end='\n'):
     __print_color("GREEN", msg, end)
+
+
+def print_yellow(msg: str, end='\n'):
+    __print_color("YELLOW", msg, end)
 
 
 def print_red(msg: str, end='\n'):
@@ -47,7 +54,7 @@ def __print_color(color, msg, end):
 
 
 def __pwd_input(prompt: str) -> str:
-    __input = cdll.LoadLibrary("./lib/__input.so").__input
+    __input = cdll.LoadLibrary(f"{HOME_PATH}/lib/__input.so").__input
     __input.restype = c_int
     __input.argtypes = [c_char_p, c_char_p]
     __pwd = bytes(b"0"*10)
@@ -62,7 +69,7 @@ def __pwd_input(prompt: str) -> str:
 
 def __user_choose(choose_list: list) -> int:
     try:
-        user_choose = cdll.LoadLibrary("./lib/__input.so").__user_choose
+        user_choose = cdll.LoadLibrary(f"{HOME_PATH}/lib/__input.so").__user_choose
         user_choose.restype = c_int
         c_str_arr = c_char_p * len(choose_list)
         user_choose.argtypes = [c_str_arr, c_int]
@@ -111,7 +118,7 @@ def gen_password(length=16) -> str:
             __pwd += "\\`"
         else:
             __pwd += ch
-    print_cyan(__pwd)
+    # print_cyan(__pwd)
     return __pwd
 
 
