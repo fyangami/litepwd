@@ -1,4 +1,4 @@
-#!/home/fyang/.virtualenvs/base/bin/python
+#!/usr/bin/python3
 # !encoding:utf8
 
 from pyperclip import copy, paste
